@@ -1,0 +1,83 @@
+import type { Context } from '@deepseek-ai/cordis'
+import { defineTool } from '@deepseek-ai/dsh-tools'
+import { readFileSync } from 'node:fs'
+
+export const name = 'jiafang-extract'
+export const inject = ['tools']
+
+const QWEN_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
+const TASKS_PATH = process.env.JIAFANG_TASKS_JSON || 'D:/AI_Agent/DeepseekHarness/jiafang-solution/tasks.json'
+
+type TaskDef = { label: string; kind?: string; input?: string; fields?: Record<string, { label: string; type: string }> }
+
+function loadTasks(): Record<string, TaskDef> {
+  try {
+    return JSON.parse(readFileSync(TASKS_PATH, 'utf-8'))
+  } catch (e) {
+    throw new Error(`读取 tasks.json 失败：${(e as Error).message}`)
+  }
+}
+
+function buildPrompt(task: TaskDef): string {
+  const fieldLines = Object.entries(task.fields || {})
+    .map(([key, f]) => `- ${key}：${f.label}（${f.type}）`)
+    .join('\n')
+  return [
+    `你是单据信息抽取助手。从「${task.label}」的文字中抽取字段，只输出一个 JSON 对象，不要输出任何其他内容。`,
+    '字段：',
+    fieldLines,
+    '找不到的字段值用 null。',
+  ].join('\n')
+}
+
+function parseLlmJson(text: string): any {
+  let s = text.trim()
+  const fence = s.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
+  if (fence) s = fence[1]
+  const start = s.indexOf('{')
+  const end = s.lastIndexOf('}')
+  if (start < 0 || end < 0 || end <= start) throw new Error('Qwen 没有返回 JSON 对象')
+  return JSON.parse(s.slice(start, end + 1))
+}
+
+async function callQwen(messages: any[], model: string): Promise<string> {
+  const resp = await fetch(QWEN_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.DASHSCOPE_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ model, messages }),
+  })
+  const data = await resp.json() as any
+  if (!data.choices || data.choices.length === 0) {
+    throw new Error(`Qwen 调用失败：${JSON.stringify(data)}`)
+  }
+  return data.choices[0].message.content
+}
+
+export function apply(ctx: Context) {
+  ctx.tools.register(defineTool({
+    name: 'extract_text',
+    description: '从单据文字里抽取字段。doc_type 在 tasks.json 里定义，字段也由 tasks.json 决定。',
+    parameters: {
+      doc_type: { type: 'string', required: true, description: '单据类型 id，如 work_report' },
+      raw_text: { type: 'string', description: '原始文字' },
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: true },
+      render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
+    },
+    async execute(args: any) {
+      const task = loadTasks()[args.doc_type]
+      if (!task) throw new Error(`未知 doc_type：${args.doc_type}（tasks.json 里没有）`)
+      if (task.kind === 'query') throw new Error(`doc_type=${args.doc_type} 是查询类型，请用 nl2sql`)
+      if (!args.raw_text) throw new Error('需要 raw_text')
+      const content = await callQwen([
+        { role: 'system', content: buildPrompt(task) },
+        { role: 'user', content: args.raw_text },
+      ], 'qwen-plus')
+      return parseLlmJson(content)
+    },
+  }))
+}

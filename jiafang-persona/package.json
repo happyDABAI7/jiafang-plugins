@@ -1,0 +1,9 @@
+{
+  "name": "jiafang-persona",
+  "version": "0.1.0",
+  "description": "家纺管家角色 + 路由提示词（读 tasks.json 生成）",
+  "type": "module",
+  "license": "MIT",
+  "files": ["dist", "cordis.patch.yml"],
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "jiafang-asr",
+  "version": "0.1.0",
+  "description": "转写：录音 → 文字（Qwen-ASR）",
+  "type": "module",
+  "license": "MIT",
+  "files": ["dist", "cordis.patch.yml"],
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": ">=0.0.1-rc.1 <0.1.0 || >=0.1.0-rc.1 <0.2.0-0"
+  }
+}

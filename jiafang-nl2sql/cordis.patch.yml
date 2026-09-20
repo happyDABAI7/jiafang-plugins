@@ -1,0 +1,3 @@
+﻿- insert:
+    - id: jiafang-nl2sql
+      name: jiafang-nl2sql/dist/jiafang-nl2sql-plugin.js

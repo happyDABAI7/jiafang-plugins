@@ -1,0 +1,10 @@
+{
+  "name": "jiafang-plugins",
+  "version": "0.1.0",
+  "private": true,
+  "description": "家纺工厂管家 DSH 插件集（monorepo）",
+  "license": "MIT",
+  "scripts": {
+    "pack": "node scripts/pack-all.mjs"
+  }
+}

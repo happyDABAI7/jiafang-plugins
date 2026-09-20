@@ -1,0 +1,3 @@
+﻿- insert:
+    - id: jiafang-extract
+      name: jiafang-extract/dist/jiafang-extract-plugin.js
