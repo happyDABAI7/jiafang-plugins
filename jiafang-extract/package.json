@@ -1,6 +1,6 @@
 {
   "name": "jiafang-extract",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "文字抽取：单据文字 → 字段（读 tasks.json）",
   "type": "module",
   "license": "MIT",

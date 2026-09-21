@@ -67,6 +67,7 @@ export function apply(ctx: Context) {
     output: {
       schema: { type: 'object', additionalProperties: true },
       render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
+      presentationMeta: (_args, value) => value,
     },
     async execute(args: any) {
       const task = loadTasks()[args.doc_type]

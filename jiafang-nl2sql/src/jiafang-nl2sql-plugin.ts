@@ -60,7 +60,8 @@ const FORBIDDEN = ['insert', 'update', 'delete', 'drop', 'truncate', 'alter', 'c
 function checkReadonly(sql: string) {
   const lower = sql.toLowerCase()
   for (const kw of FORBIDDEN) {
-    if (lower.includes(kw)) throw new Error(`检测到写操作关键字 ${kw}，拒绝执行`)
+    // 整词匹配：不误拦 create_time / delete_flag / updated_at 这类字段名
+    if (new RegExp(`\\b${kw}\\b`).test(lower)) throw new Error(`检测到写操作关键字 ${kw}，拒绝执行`)
   }
 }
 
@@ -72,13 +73,14 @@ function ensureLimit(sql: string) {
 export function apply(ctx: Context) {
   ctx.tools.register(defineTool({
     name: 'nl2sql',
-    description: '把自然语言问题转成 SQL 并查询（只读、白名单限制；白名单来自 tasks.json 的 query 条目）。当前返回假数据。',
+    description: '把自然语言问题转成只读 SQL（白名单来自 tasks.json 的 query 条目）。只生成 SQL，不执行。',
     parameters: {
       question: { type: 'string', required: true, description: '要查询的自然语言问题' },
     },
     output: {
-      schema: { type: 'string' },
-      render: (_args, value) => [{ type: 'text', text: value }],
+      schema: { type: 'object', additionalProperties: true },
+      render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
+      presentationMeta: (_args, value) => value,
     },
     async execute(args: any) {
       const { tables, mapping } = buildQueryConfig()
@@ -108,7 +110,7 @@ export function apply(ctx: Context) {
       checkReadonly(sql)
       const safeSql = ensureLimit(sql)
 
-      return `生成的 SQL：${safeSql}\n（假）查询结果：2 条记录`
+      return { sql: safeSql }
     },
   }))
 }

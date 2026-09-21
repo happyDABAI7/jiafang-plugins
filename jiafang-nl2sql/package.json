@@ -1,6 +1,6 @@
 {
   "name": "jiafang-nl2sql",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "查询：自然语言 → SQL（三道闸，白名单来自 tasks.json）",
   "type": "module",
   "license": "MIT",
